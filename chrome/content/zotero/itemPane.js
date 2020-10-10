@@ -131,54 +131,32 @@ var ZoteroItemPane = new function() {
 			var editable = ZoteroPane_Local.canEdit();
 			_notesButton.hidden = !editable;
 			
-			while(_notesList.hasChildNodes()) {
-				_notesList.removeChild(_notesList.firstChild);
-			}
-			
 			_noteIDs = new Set();
+			_chrono = Zotero.Prefs.get('sortNotesChronologically')
+			Zotero.Prefs.set('sortNotesChronologically', true)
 			let notes = yield Zotero.Items.getAsync(item.getNotes());
+			Zotero.Prefs.set('sortNotesChronologically', _chrono)
+			var noteEditor = document.getElementById('zotero-note-editor-inner');
 			if (notes.length) {
-				for (var i = 0; i < notes.length; i++) {
-					let note = notes[i];
-					let id = notes[i].id;
-					
-					var icon = document.createElement('image');
-					icon.className = "zotero-box-icon";
-					icon.setAttribute('src', `chrome://zotero/skin/treeitem-note${Zotero.hiDPISuffix}.png`);
-					
-					var label = document.createElement('label');
-					label.className = "zotero-box-label";
-					var title = note.getNoteTitle();
-					title = title ? title : Zotero.getString('pane.item.notes.untitled');
-					label.setAttribute('value', title);
-					label.setAttribute('flex','1');	//so that the long names will flex smaller
-					label.setAttribute('crop','end');
-					
-					var box = document.createElement('box');
-					box.setAttribute('class','zotero-clicky');
-					box.addEventListener('click', function () { ZoteroPane_Local.selectItem(id); });
-					box.appendChild(icon);
-					box.appendChild(label);
-					
-					if (editable) {
-						var removeButton = document.createElement('label');
-						removeButton.setAttribute("value","-");
-						removeButton.setAttribute("class","zotero-clicky zotero-clicky-minus");
-						removeButton.addEventListener('click', function () { ZoteroItemPane.removeNote(id); });
-					}
-					
-					var row = document.createElement('row');
-					row.appendChild(box);
-					if (editable) {
-						row.appendChild(removeButton);
-					}
-					
-					_notesList.appendChild(row);
-					_noteIDs.add(id);
+				noteEditor.hidden = false;
+				document.getElementById('zotero-view-note-button-inner').hidden = !editable;
+				let note = notes[0]; // oldest note
+				_selectedNoteID = note.id;
+				var clearUndo = noteEditor.item ? noteEditor.item.id != item.id : false;
+				
+				noteEditor.mode = editable ? 'edit' : 'view';
+				noteEditor.parent = null;
+				noteEditor.item = note;
+				
+				if (clearUndo) {
+					noteEditor.clearUndo();
 				}
 			}
+			else {
+				noteEditor.hidden = true;
+				document.getElementById('zotero-view-note-button-inner').hidden = true;
+			}
 			
-			_updateNoteCount();
 			return;
 		}
 		else if (index == 2) {
